@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng Đốt cháy Ethyl Alcohol</title>
+    <style>
+        :root {
+            --lab-bg: #f5f6fa;
+            --ceramic: #ffffff;
+            --alcohol: rgba(200, 230, 255, 0.4);
+            --flame-blue: rgba(0, 150, 255, 0.6);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--lab-bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .experiment-box {
+            width: 500px;
+            height: 350px;
+            background: white;
+            border: 2px solid #dcdde1;
+            border-radius: 15px;
+            position: relative;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Đĩa sứ */
+        .ceramic-dish {
+            width: 180px;
+            height: 60px;
+            background: var(--ceramic);
+            border: 2px solid #ccc;
+            border-radius: 50% / 80% 80% 20% 20%;
+            position: absolute;
+            bottom: 50px;
+            box-shadow: inset 0 -5px 10px rgba(0,0,0,0.1);
+        }
+
+        /* Chất lỏng cồn trong đĩa */
+        #liquid {
+            position: absolute;
+            bottom: 10px;
+            left: 25px;
+            width: 130px;
+            height: 10px;
+            background: var(--alcohol);
+            border-radius: 50%;
+            display: none;
+        }
+
+        /* Que đóm */
+        #splint {
+            position: absolute;
+            width: 120px;
+            height: 6px;
+            background: #8e44ad;
+            right: -130px;
+            top: 150px;
+            border-radius: 3px;
+            transform: rotate(-30deg);
+            transition: all 1s ease;
+        }
+
+        /* Ngọn lửa trên que đóm */
+        #splint-flame {
+            position: absolute;
+            left: -10px;
+            top: -15px;
+            width: 15px;
+            height: 20px;
+            background: #f1c40f;
+            border-radius: 50% 50% 20% 20%;
+            display: none;
+            filter: blur(2px);
+            animation: flicker 0.1s infinite alternate;
+        }
+
+        /* Ngọn lửa cồn cháy (xanh nhạt) */
+        #alcohol-flame {
+            position: absolute;
+            bottom: 60px;
+            width: 100px;
+            height: 80px;
+            background: var(--flame-blue);
+            border-radius: 50% 50% 20% 20%;
+            display: none;
+            filter: blur(5px);
+            animation: burn 0.2s infinite alternate;
+        }
+
+        @keyframes flicker {
+            from { transform: scale(1); opacity: 0.8; }
+            to { transform: scale(1.1); opacity: 1; }
+        }
+
+        @keyframes burn {
+            from { height: 70px; transform: scaleX(1); }
+            to { height: 90px; transform: scaleX(1.05); }
+        }
+
+        /* Điều khiển */
+        .controls {
+            margin-top: 25px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 15px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background: #27ae60;
+            color: white;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        button:hover { background: #219150; }
+        button:disabled { background: #bdc3c7; cursor: not-allowed; }
+
+        /* Thông tin kết quả */
+        .info-panel {
+            margin-top: 20px;
+            width: 500px;
+            padding: 15px;
+            background: #e1f5fe;
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .equation {
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            color: #c0392b;
+            background: white;
+            padding: 5px;
+            display: inline-block;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2 style="color: #2c3e50;">Thí nghiệm 1: Đốt cháy ethyl alcohol</h2>
+
+    <div class="experiment-box">
+        <div id="alcohol-flame"></div>
+        <div class="ceramic-dish">
+            <div id="liquid"></div>
+        </div>
+        <div id="splint">
+            <div id="splint-flame"></div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button id="btn-pour" onclick="pourAlcohol()">1. Nhỏ cồn vào đĩa</button>
+        <button id="btn-light" onclick="lightSplint()" disabled>2. Châm lửa que đóm</button>
+        <button id="btn-ignite" onclick="igniteAlcohol()" disabled>3. Đốt cồn</button>
+        <button onclick="resetLab()" style="background: #e74c3c;">Làm lại</button>
+    </div>
+
+    <div class="info-panel" id="result-panel" style="display: none;">
+        <strong>Hiện tượng:</strong> Ethanol cháy với ngọn lửa màu xanh nhạt, tỏa nhiều nhiệt. <br>
+        <strong>Phương trình hóa học:</strong> <br>
+        <div class="equation">
+            C<sub>2</sub>H<sub>5</sub>OH + 3O<sub>2</sub> &rarr; 2CO<sub>2</sub> + 3H<sub>2</sub>O
+        </div>
+    </div>
+
+    <script>
+        const liquid = document.getElementById('liquid');
+        const splint = document.getElementById('splint');
+        const splintFlame = document.getElementById('splint-flame');
+        const alcoholFlame = document.getElementById('alcohol-flame');
+        const resultPanel = document.getElementById('result-panel');
+
+        const btnPour = document.getElementById('btn-pour');
+        const btnLight = document.getElementById('btn-light');
+        const btnIgnite = document.getElementById('btn-ignite');
+
+        function pourAlcohol() {
+            liquid.style.display = 'block';
+            btnPour.disabled = true;
+            btnLight.disabled = false;
+        }
+
+        function lightSplint() {
+            splint.style.right = '50px';
+            setTimeout(() => {
+                splintFlame.style.display = 'block';
+                btnLight.disabled = true;
+                btnIgnite.disabled = false;
+            }, 500);
+        }
+
+        function igniteAlcohol() {
+            // Di chuyển que đóm vào đĩa
+            splint.style.right = '180px';
+            splint.style.top = '220px';
+
+            setTimeout(() => {
+                alcoholFlame.style.display = 'block';
+                resultPanel.style.display = 'block';
+                btnIgnite.disabled = true;
+                
+                // Que đóm rút về sau khi đốt xong
+                setTimeout(() => {
+                    splint.style.right = '-130px';
+                    splintFlame.style.display = 'none';
+                }, 1000);
+            }, 800);
+        }
+
+        function resetLab() {
+            liquid.style.display = 'none';
+            alcoholFlame.style.display = 'none';
+            splintFlame.style.display = 'none';
+            splint.style.right = '-130px';
+            splint.style.top = '150px';
+            resultPanel.style.display = 'none';
+            
+            btnPour.disabled = false;
+            btnLight.disabled = true;
+            btnIgnite.disabled = true;
+        }
+    </script>
+
+</body>
+</html>
